@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "migrate": "node migrate.js",
     "seed": "node seed.js",
+    "build": "node migrate.js",
     "test": "jest --runInBand",
     "test:unit": "jest tests/unit --runInBand",
     "test:integration": "jest tests/integration --runInBand",

@@ -16,6 +16,7 @@ const migrations = [
   { name: '009_add_reply_to_questions',    module: require('./src/migrations/009_add_reply_to_questions') },
   { name: '010_add_draft_status_to_news',  module: require('./src/migrations/010_add_draft_status_to_news') },
   { name: '011_create_contact_messages',   module: require('./src/migrations/011_create_contact_messages') },
+  { name: '012_add_missing_question_columns', module: require('./src/migrations/012_add_missing_question_columns') },
 ];
 
 (async () => {
