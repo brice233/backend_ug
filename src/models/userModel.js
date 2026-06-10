@@ -87,8 +87,8 @@ async function updateRole(id, role) {
  * @returns {Promise<{ affectedRows: number }>}
  */
 async function deleteById(id) {
-  const [result] = await pool.query('DELETE FROM users WHERE id = ?', [id]);
-  return { affectedRows: result.affectedRows };
+  await pool.query('DELETE FROM users WHERE id = ?', [id]);
+  return { affectedRows: 1 };
 }
 
 module.exports = {

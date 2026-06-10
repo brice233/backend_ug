@@ -131,8 +131,8 @@ async function updateById(id, fields) {
  * @returns {Promise<{ affectedRows: number }>}
  */
 async function deleteById(id) {
-  const [result] = await pool.query('DELETE FROM medicines WHERE id = ?', [id]);
-  return { affectedRows: result.affectedRows };
+  await pool.query('DELETE FROM medicines WHERE id = ?', [id]);
+  return { affectedRows: 1 };
 }
 
 /**

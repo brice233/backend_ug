@@ -68,8 +68,8 @@ async function saveReply(id, reply_text) {
 }
 
 async function remove(id) {
-  const [result] = await pool.query('DELETE FROM contact_messages WHERE id = ?', [id]);
-  return result.affectedRows > 0;
+  await pool.query('DELETE FROM contact_messages WHERE id = ?', [id]);
+  return true;
 }
 
 async function countUnread() {

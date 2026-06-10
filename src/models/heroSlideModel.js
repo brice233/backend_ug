@@ -85,46 +85,29 @@ async function createHeroSlide(data) {
 
 async function updateHeroSlide(id, data) {
   const {
-    title,
-    subtitle,
-    primary_button_text,
-    primary_button_link,
-    secondary_button_text,
-    secondary_button_link,
-    media_type,
-    media_url,
-    display_order,
-    is_active,
+    title, subtitle, primary_button_text, primary_button_link,
+    secondary_button_text, secondary_button_link, media_type,
+    media_url, display_order, is_active,
   } = data;
 
-  const [result] = await pool.query(
+  await pool.query(
     `UPDATE hero_slides
      SET title = ?, subtitle = ?, primary_button_text = ?, primary_button_link = ?,
          secondary_button_text = ?, secondary_button_link = ?, media_type = ?,
          media_url = ?, display_order = ?, is_active = ?
      WHERE id = ?`,
     [
-      title,
-      subtitle || null,
-      primary_button_text || null,
-      primary_button_link || null,
-      secondary_button_text || null,
-      secondary_button_link || null,
-      media_type,
-      media_url,
-      display_order,
-      is_active,
-      id,
+      title, subtitle || null, primary_button_text || null, primary_button_link || null,
+      secondary_button_text || null, secondary_button_link || null, media_type,
+      media_url, display_order, is_active, id,
     ]
   );
-
-  // MySQL: result.affectedRows, PostgreSQL: result is array from adapter
-  return isPostgres ? true : result.affectedRows > 0;
+  return true;
 }
 
 async function deleteHeroSlide(id) {
-  const [result] = await pool.query('DELETE FROM hero_slides WHERE id = ?', [id]);
-  return isPostgres ? true : result.affectedRows > 0;
+  await pool.query('DELETE FROM hero_slides WHERE id = ?', [id]);
+  return true;
 }
 
 async function getHeroSlidesCount({ isActive = null } = {}) {
