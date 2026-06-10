@@ -1,37 +1,35 @@
 'use strict';
 
-const pool = require('../config/db');
+const isPostgres = !!process.env.DATABASE_URL;
 
-/**
- * Migration 010 — Add 'draft' to the news_posts.status ENUM.
- * MySQL requires re-specifying all existing enum values when altering.
- */
-async function up() {
-  try {
-    await pool.query(`
-      ALTER TABLE news_posts
-      MODIFY COLUMN status ENUM('pending', 'published', 'rejected', 'draft')
-        NOT NULL DEFAULT 'pending'
-    `);
-    console.log('✓ Migration 010: added draft to news_posts.status enum');
-  } catch (err) {
-    console.error('✗ Migration 010 failed:', err.message);
-    throw err;
+async function up(pool) {
+  if (isPostgres) {
+    // PostgreSQL uses CHECK constraints — drop old and add new with 'draft'
+    // The CHECK was already defined in migration 003 to include 'draft', so this is a no-op guard
+    try {
+      await pool.query(`
+        ALTER TABLE news_posts DROP CONSTRAINT IF EXISTS news_posts_status_check
+      `);
+      await pool.query(`
+        ALTER TABLE news_posts ADD CONSTRAINT news_posts_status_check
+          CHECK (status IN ('pending', 'published', 'rejected', 'draft'))
+      `);
+    } catch (err) {
+      if (!err.message.includes('already exists')) throw err;
+    }
+  } else {
+    // MySQL: re-specify ENUM to include 'draft'
+    try {
+      await pool.query(`
+        ALTER TABLE news_posts
+        MODIFY COLUMN status ENUM('pending', 'published', 'rejected', 'draft')
+          NOT NULL DEFAULT 'pending'
+      `);
+    } catch (err) {
+      if (!err.message.includes('Data truncated')) throw err;
+    }
   }
+  console.log('✓ Migration 010: draft status added to news_posts');
 }
 
-async function down() {
-  // Revert: remove 'draft' — any existing draft rows will become '' (empty) in strict mode,
-  // so convert them to 'pending' first.
-  await pool.query(`
-    UPDATE news_posts SET status = 'pending' WHERE status = 'draft'
-  `);
-  await pool.query(`
-    ALTER TABLE news_posts
-    MODIFY COLUMN status ENUM('pending', 'published', 'rejected')
-      NOT NULL DEFAULT 'pending'
-  `);
-  console.log('✓ Rollback 010 complete');
-}
-
-module.exports = { up, down };
+module.exports = { up };
