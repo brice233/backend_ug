@@ -26,6 +26,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "3.9.7",
     "nodemailer": "6.9.14",
+    "pg": "^8.11.5",
     "swagger-jsdoc": "6.2.8",
     "swagger-ui-express": "5.0.1"
   },
