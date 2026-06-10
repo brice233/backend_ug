@@ -2,13 +2,6 @@
 
 const pool = require('../config/db');
 
-/**
- * Create a new question record. Status is always set to 'pending' by DB default.
- */
-'use strict';
-
-const pool = require('../config/db');
-
 const isPostgres = !!process.env.DATABASE_URL;
 
 async function create({ visitor_name, visitor_email, question_text }) {
@@ -25,12 +18,8 @@ async function create({ visitor_name, visitor_email, question_text }) {
   }
 }
 
-/**
- * Find all questions with pagination, optional status filter, ordered by submitted_at DESC.
- */
 async function findAll({ page = 1, limit = 20, status } = {}) {
   const offset = (page - 1) * limit;
-
   const conditions = [];
   const values = [];
 
@@ -51,36 +40,26 @@ async function findAll({ page = 1, limit = 20, status } = {}) {
     values
   );
 
-  return { rows, total };
+  return { rows, total: parseInt(total, 10) };
 }
 
-/**
- * Find a single question by ID.
- */
 async function findById(id) {
   const [rows] = await pool.query('SELECT * FROM questions WHERE id = ?', [id]);
   return rows[0] || null;
 }
 
-/**
- * Update the status of a question.
- */
 async function setStatus(id, status) {
-  const answeredAt = status === 'answered' ? new Date() : null;
   await pool.query(
-    'UPDATE questions SET status = ?, answered_at = ? WHERE id = ?',
-    [status, answeredAt, id]
+    'UPDATE questions SET status = ?, answered_at = NOW() WHERE id = ?',
+    [status, id]
   );
   return findById(id);
 }
 
-/**
- * Save a reply to a question and mark it as answered.
- */
 async function saveReply(id, reply_text) {
   await pool.query(
-    'UPDATE questions SET reply_text = ?, status = ?, answered_at = ? WHERE id = ?',
-    [reply_text, 'answered', new Date(), id]
+    "UPDATE questions SET reply_text = ?, status = 'answered', answered_at = NOW() WHERE id = ?",
+    [reply_text, id]
   );
   return findById(id);
 }
