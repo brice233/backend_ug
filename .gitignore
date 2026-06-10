@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Environment — NEVER commit
+.env
+.env.local
+.env.production
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Zip files
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# PM2
+ecosystem.config.js
+
+# Temp files
+tmp/
