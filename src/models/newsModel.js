@@ -2,14 +2,10 @@
 
 const pool = require('../config/db');
 
-/**
- * Find all news posts for admin with optional filters: search, status, category.
- * @param {{ page?: number, limit?: number, search?: string, status?: string, category?: string }} options
- * @returns {Promise<{ rows: object[], total: number }>}
- */
+const isPostgres = !!process.env.DATABASE_URL;
+
 async function findAll({ page = 1, limit = 10, search = '', status = '', category = '' } = {}) {
   const offset = (page - 1) * limit;
-
   const conditions = [];
   const values = [];
 
@@ -32,40 +28,26 @@ async function findAll({ page = 1, limit = 10, search = '', status = '', categor
     `SELECT * FROM news_posts ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
     [...values, limit, offset]
   );
-
   const [[{ total }]] = await pool.query(
     `SELECT COUNT(*) AS total FROM news_posts ${where}`,
     values
   );
 
-  return { rows, total };
+  return { rows, total: parseInt(total, 10) };
 }
 
-/**
- * Find all published news posts with pagination, ordered by created_at DESC.
- * @param {{ page?: number, limit?: number }} options
- * @returns {Promise<{ rows: object[], total: number }>}
- */
 async function findAllPublished({ page = 1, limit = 10 } = {}) {
   const offset = (page - 1) * limit;
-
   const [rows] = await pool.query(
     "SELECT * FROM news_posts WHERE status = 'published' ORDER BY created_at DESC LIMIT ? OFFSET ?",
     [limit, offset]
   );
-
   const [[{ total }]] = await pool.query(
     "SELECT COUNT(*) AS total FROM news_posts WHERE status = 'published'"
   );
-
-  return { rows, total };
+  return { rows, total: parseInt(total, 10) };
 }
 
-/**
- * Find a single published news post by ID.
- * @param {number} id
- * @returns {Promise<object|null>}
- */
 async function findPublishedById(id) {
   const [rows] = await pool.query(
     "SELECT * FROM news_posts WHERE id = ? AND status = 'published'",
@@ -74,36 +56,17 @@ async function findPublishedById(id) {
   return rows[0] || null;
 }
 
-/**
- * Find all pending news posts with pagination.
- * @param {{ page?: number, limit?: number }} options
- * @returns {Promise<{ rows: object[], total: number }>}
- */
 async function findPendingAll({ page = 1, limit = 10 } = {}) {
   const offset = (page - 1) * limit;
-
   const [rows] = await pool.query(
     "SELECT * FROM news_posts WHERE status = 'pending' LIMIT ? OFFSET ?",
     [limit, offset]
   );
-
   const [[{ total }]] = await pool.query(
     "SELECT COUNT(*) AS total FROM news_posts WHERE status = 'pending'"
   );
-
-  return { rows, total };
+  return { rows, total: parseInt(total, 10) };
 }
-
-/**
- * Create a new news post.
- * @param {object} fields
- * @returns {Promise<object>}
- */
-'use strict';
-
-const pool = require('../config/db');
-
-const isPostgres = !!process.env.DATABASE_URL;
 
 async function create(fields) {
   const {
@@ -126,15 +89,8 @@ async function create(fields) {
   }
 }
 
-/**
- * Update a news post by ID (only provided fields).
- * @param {number} id
- * @param {object} fields
- * @returns {Promise<object|null>}
- */
 async function updateById(id, fields) {
   const allowedFields = ['title', 'content', 'category', 'cover_image_url', 'video_url', 'status'];
-
   const updates = [];
   const values = [];
 
@@ -159,29 +115,16 @@ async function updateById(id, fields) {
   return rows[0] || null;
 }
 
-/**
- * Delete a news post by ID.
- * @param {number} id
- * @returns {Promise<{ affectedRows: number }>}
- */
 async function deleteById(id) {
   await pool.query('DELETE FROM news_posts WHERE id = ?', [id]);
   return { affectedRows: 1 };
 }
 
-/**
- * Set the status of a news post (approve/reject).
- * @param {number} id
- * @param {string} status - 'published' or 'rejected'
- * @param {number} moderatedBy - admin user ID
- * @returns {Promise<object|null>}
- */
 async function setStatus(id, status, moderatedBy) {
   await pool.query(
     'UPDATE news_posts SET status = ?, moderated_by = ?, moderated_at = NOW(), updated_at = NOW() WHERE id = ?',
     [status, moderatedBy, id]
   );
-
   const [rows] = await pool.query('SELECT * FROM news_posts WHERE id = ?', [id]);
   return rows[0] || null;
 }

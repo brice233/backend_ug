@@ -2,31 +2,20 @@
 
 const pool = require('../config/db');
 
-/**
- * Find all published Health with pagination.
- * @param {{ page?: number, limit?: number }} options
- * @returns {Promise<{ rows: object[], total: number }>}
- */
+const isPostgres = !!process.env.DATABASE_URL;
+
 async function findAllPublished({ page = 1, limit = 10 } = {}) {
   const offset = (page - 1) * limit;
-
   const [rows] = await pool.query(
     "SELECT * FROM medicines WHERE status = 'published' LIMIT ? OFFSET ?",
     [limit, offset]
   );
-
   const [[{ total }]] = await pool.query(
     "SELECT COUNT(*) AS total FROM medicines WHERE status = 'published'"
   );
-
-  return { rows, total };
+  return { rows, total: parseInt(total, 10) };
 }
 
-/**
- * Find a single published medicine by ID.
- * @param {number} id
- * @returns {Promise<object|null>}
- */
 async function findPublishedById(id) {
   const [rows] = await pool.query(
     "SELECT * FROM medicines WHERE id = ? AND status = 'published'",
@@ -35,36 +24,17 @@ async function findPublishedById(id) {
   return rows[0] || null;
 }
 
-/**
- * Find all pending Health with pagination.
- * @param {{ page?: number, limit?: number }} options
- * @returns {Promise<{ rows: object[], total: number }>}
- */
 async function findPendingAll({ page = 1, limit = 10 } = {}) {
   const offset = (page - 1) * limit;
-
   const [rows] = await pool.query(
     "SELECT * FROM medicines WHERE status = 'pending' LIMIT ? OFFSET ?",
     [limit, offset]
   );
-
   const [[{ total }]] = await pool.query(
     "SELECT COUNT(*) AS total FROM medicines WHERE status = 'pending'"
   );
-
-  return { rows, total };
+  return { rows, total: parseInt(total, 10) };
 }
-
-/**
- * Create a new medicine record.
- * @param {object} fields
- * @returns {Promise<object>}
- */
-'use strict';
-
-const pool = require('../config/db');
-
-const isPostgres = !!process.env.DATABASE_URL;
 
 async function create(fields) {
   const {
@@ -88,12 +58,6 @@ async function create(fields) {
   }
 }
 
-/**
- * Update a medicine record by ID (only provided fields).
- * @param {number} id
- * @param {object} fields
- * @returns {Promise<object|null>}
- */
 async function updateById(id, fields) {
   const allowedFields = [
     'name', 'description', 'uses', 'category',
@@ -125,29 +89,16 @@ async function updateById(id, fields) {
   return rows[0] || null;
 }
 
-/**
- * Delete a medicine by ID.
- * @param {number} id
- * @returns {Promise<{ affectedRows: number }>}
- */
 async function deleteById(id) {
   await pool.query('DELETE FROM medicines WHERE id = ?', [id]);
   return { affectedRows: 1 };
 }
 
-/**
- * Set the status of a medicine (approve/reject).
- * @param {number} id
- * @param {string} status - 'published' or 'rejected'
- * @param {number} moderatedBy - admin user ID
- * @returns {Promise<object|null>}
- */
 async function setStatus(id, status, moderatedBy) {
   await pool.query(
     'UPDATE medicines SET status = ?, moderated_by = ?, moderated_at = NOW(), updated_at = NOW() WHERE id = ?',
     [status, moderatedBy, id]
   );
-
   const [rows] = await pool.query('SELECT * FROM medicines WHERE id = ?', [id]);
   return rows[0] || null;
 }

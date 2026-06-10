@@ -2,10 +2,6 @@
 
 const pool = require('../config/db');
 
-'use strict';
-
-const pool = require('../config/db');
-
 const isPostgres = !!process.env.DATABASE_URL;
 
 async function create({ name, email, phone, subject, message }) {
@@ -43,7 +39,7 @@ async function findAll({ page = 1, limit = 20, status } = {}) {
     values
   );
 
-  return { rows, total };
+  return { rows, total: parseInt(total, 10) };
 }
 
 async function findById(id) {
@@ -61,8 +57,8 @@ async function markRead(id) {
 
 async function saveReply(id, reply_text) {
   await pool.query(
-    `UPDATE contact_messages SET reply_text = ?, status = 'replied', replied_at = ? WHERE id = ?`,
-    [reply_text, new Date(), id]
+    `UPDATE contact_messages SET reply_text = ?, status = 'replied', replied_at = NOW() WHERE id = ?`,
+    [reply_text, id]
   );
   return findById(id);
 }
@@ -76,7 +72,7 @@ async function countUnread() {
   const [[{ total }]] = await pool.query(
     `SELECT COUNT(*) AS total FROM contact_messages WHERE status = 'unread'`
   );
-  return total;
+  return parseInt(total, 10);
 }
 
 module.exports = { create, findAll, findById, markRead, saveReply, remove, countUnread };
