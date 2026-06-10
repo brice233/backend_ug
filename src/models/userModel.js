@@ -48,12 +48,26 @@ async function findByEmail(email) {
  * @param {{ name: string, email: string, password: string, role?: string }} data
  * @returns {Promise<object>}
  */
+'use strict';
+
+const pool = require('../config/db');
+
+const isPostgres = !!process.env.DATABASE_URL;
+
 async function create({ name, email, password, role = 'user' }) {
-  const [result] = await pool.query(
-    'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-    [name, email, password, role]
-  );
-  return findById(result.insertId);
+  const sql = 'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)';
+  const values = [name, email, password, role];
+
+  if (isPostgres) {
+    const [rows] = await pool.query(
+      'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?) RETURNING id',
+      values
+    );
+    return findById(rows[0].id);
+  } else {
+    const [result] = await pool.query(sql, values);
+    return findById(result.insertId);
+  }
 }
 
 /**

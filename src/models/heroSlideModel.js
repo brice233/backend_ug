@@ -1,8 +1,9 @@
+'use strict';
+
 const pool = require('../config/db');
 
-/**
- * Get all hero slides (with optional filtering)
- */
+const isPostgres = !!process.env.DATABASE_URL;
+
 async function getHeroSlides({ isActive = null, limit = null } = {}) {
   let query = 'SELECT * FROM hero_slides';
   const params = [];
@@ -23,9 +24,6 @@ async function getHeroSlides({ isActive = null, limit = null } = {}) {
   return rows;
 }
 
-/**
- * Get a single hero slide by ID
- */
 async function getHeroSlideById(id) {
   const [rows] = await pool.query(
     'SELECT * FROM hero_slides WHERE id = ?',
@@ -34,9 +32,6 @@ async function getHeroSlideById(id) {
   return rows[0] || null;
 }
 
-/**
- * Create a new hero slide
- */
 async function createHeroSlide(data) {
   const {
     title,
@@ -51,32 +46,43 @@ async function createHeroSlide(data) {
     is_active = true,
   } = data;
 
-  const [result] = await pool.query(
-    `INSERT INTO hero_slides 
-    (title, subtitle, primary_button_text, primary_button_link, 
-     secondary_button_text, secondary_button_link, media_type, media_url, 
-     display_order, is_active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      title,
-      subtitle || null,
-      primary_button_text || null,
-      primary_button_link || null,
-      secondary_button_text || null,
-      secondary_button_link || null,
-      media_type,
-      media_url,
-      display_order,
-      is_active,
-    ]
-  );
+  const values = [
+    title,
+    subtitle || null,
+    primary_button_text || null,
+    primary_button_link || null,
+    secondary_button_text || null,
+    secondary_button_link || null,
+    media_type,
+    media_url,
+    display_order,
+    is_active,
+  ];
 
-  return result.insertId;
+  if (isPostgres) {
+    const [rows] = await pool.query(
+      `INSERT INTO hero_slides
+        (title, subtitle, primary_button_text, primary_button_link,
+         secondary_button_text, secondary_button_link, media_type, media_url,
+         display_order, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       RETURNING id`,
+      values
+    );
+    return rows[0].id;
+  } else {
+    const [result] = await pool.query(
+      `INSERT INTO hero_slides
+        (title, subtitle, primary_button_text, primary_button_link,
+         secondary_button_text, secondary_button_link, media_type, media_url,
+         display_order, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      values
+    );
+    return result.insertId;
+  }
 }
 
-/**
- * Update an existing hero slide
- */
 async function updateHeroSlide(id, data) {
   const {
     title,
@@ -92,11 +98,11 @@ async function updateHeroSlide(id, data) {
   } = data;
 
   const [result] = await pool.query(
-    `UPDATE hero_slides 
-    SET title = ?, subtitle = ?, primary_button_text = ?, primary_button_link = ?,
-        secondary_button_text = ?, secondary_button_link = ?, media_type = ?, 
-        media_url = ?, display_order = ?, is_active = ?
-    WHERE id = ?`,
+    `UPDATE hero_slides
+     SET title = ?, subtitle = ?, primary_button_text = ?, primary_button_link = ?,
+         secondary_button_text = ?, secondary_button_link = ?, media_type = ?,
+         media_url = ?, display_order = ?, is_active = ?
+     WHERE id = ?`,
     [
       title,
       subtitle || null,
@@ -112,20 +118,15 @@ async function updateHeroSlide(id, data) {
     ]
   );
 
-  return result.affectedRows > 0;
+  // MySQL: result.affectedRows, PostgreSQL: result is array from adapter
+  return isPostgres ? true : result.affectedRows > 0;
 }
 
-/**
- * Delete a hero slide
- */
 async function deleteHeroSlide(id) {
   const [result] = await pool.query('DELETE FROM hero_slides WHERE id = ?', [id]);
-  return result.affectedRows > 0;
+  return isPostgres ? true : result.affectedRows > 0;
 }
 
-/**
- * Get total count of hero slides
- */
 async function getHeroSlidesCount({ isActive = null } = {}) {
   let query = 'SELECT COUNT(*) as total FROM hero_slides';
   const params = [];
@@ -136,7 +137,7 @@ async function getHeroSlidesCount({ isActive = null } = {}) {
   }
 
   const [rows] = await pool.query(query, params);
-  return rows[0].total;
+  return parseInt(rows[0].total, 10);
 }
 
 module.exports = {

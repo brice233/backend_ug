@@ -5,13 +5,24 @@ const pool = require('../config/db');
 /**
  * Create a new question record. Status is always set to 'pending' by DB default.
  */
+'use strict';
+
+const pool = require('../config/db');
+
+const isPostgres = !!process.env.DATABASE_URL;
+
 async function create({ visitor_name, visitor_email, question_text }) {
-  const [result] = await pool.query(
-    'INSERT INTO questions (visitor_name, visitor_email, question_text) VALUES (?, ?, ?)',
-    [visitor_name, visitor_email, question_text]
-  );
-  const [rows] = await pool.query('SELECT * FROM questions WHERE id = ?', [result.insertId]);
-  return rows[0] || null;
+  const sql = 'INSERT INTO questions (visitor_name, visitor_email, question_text) VALUES (?, ?, ?)';
+  const values = [visitor_name, visitor_email, question_text];
+
+  if (isPostgres) {
+    const [rows] = await pool.query(sql + ' RETURNING *', values);
+    return rows[0] || null;
+  } else {
+    const [result] = await pool.query(sql, values);
+    const [rows] = await pool.query('SELECT * FROM questions WHERE id = ?', [result.insertId]);
+    return rows[0] || null;
+  }
 }
 
 /**

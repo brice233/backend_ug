@@ -2,14 +2,24 @@
 
 const pool = require('../config/db');
 
+'use strict';
+
+const pool = require('../config/db');
+
+const isPostgres = !!process.env.DATABASE_URL;
+
 async function create({ name, email, phone, subject, message }) {
-  const [result] = await pool.query(
-    `INSERT INTO contact_messages (name, email, phone, subject, message)
-     VALUES (?, ?, ?, ?, ?)`,
-    [name, email, phone || null, subject, message]
-  );
-  const [rows] = await pool.query('SELECT * FROM contact_messages WHERE id = ?', [result.insertId]);
-  return rows[0] || null;
+  const sql = `INSERT INTO contact_messages (name, email, phone, subject, message) VALUES (?, ?, ?, ?, ?)`;
+  const values = [name, email, phone || null, subject, message];
+
+  if (isPostgres) {
+    const [rows] = await pool.query(sql + ' RETURNING *', values);
+    return rows[0] || null;
+  } else {
+    const [result] = await pool.query(sql, values);
+    const [rows] = await pool.query('SELECT * FROM contact_messages WHERE id = ?', [result.insertId]);
+    return rows[0] || null;
+  }
 }
 
 async function findAll({ page = 1, limit = 20, status } = {}) {

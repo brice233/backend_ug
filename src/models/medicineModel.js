@@ -60,30 +60,32 @@ async function findPendingAll({ page = 1, limit = 10 } = {}) {
  * @param {object} fields
  * @returns {Promise<object>}
  */
+'use strict';
+
+const pool = require('../config/db');
+
+const isPostgres = !!process.env.DATABASE_URL;
+
 async function create(fields) {
   const {
-    name,
-    description,
-    uses,
-    category,
-    scientific_name = null,
-    preparation_method = null,
-    precautions = null,
-    image_url = null,
-    video_url = null,
-    status = 'pending',
-    submitted_by = null,
+    name, description, uses, category,
+    scientific_name = null, preparation_method = null, precautions = null,
+    image_url = null, video_url = null, status = 'pending', submitted_by = null,
   } = fields;
 
-  const [result] = await pool.query(
-    `INSERT INTO medicines
-      (name, description, uses, category, scientific_name, preparation_method, precautions, image_url, video_url, status, submitted_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [name, description, uses, category, scientific_name, preparation_method, precautions, image_url, video_url, status, submitted_by]
-  );
+  const values = [name, description, uses, category, scientific_name, preparation_method, precautions, image_url, video_url, status, submitted_by];
+  const sql = `INSERT INTO medicines
+    (name, description, uses, category, scientific_name, preparation_method, precautions, image_url, video_url, status, submitted_by)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-  const [rows] = await pool.query('SELECT * FROM medicines WHERE id = ?', [result.insertId]);
-  return rows[0] || null;
+  if (isPostgres) {
+    const [rows] = await pool.query(sql + ' RETURNING *', values);
+    return rows[0] || null;
+  } else {
+    const [result] = await pool.query(sql, values);
+    const [rows] = await pool.query('SELECT * FROM medicines WHERE id = ?', [result.insertId]);
+    return rows[0] || null;
+  }
 }
 
 /**
