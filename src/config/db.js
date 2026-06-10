@@ -33,9 +33,16 @@ if (usePostgres) {
   pool.query = async function (sql, params = []) {
     let i = 0;
     const pgSql = sql.replace(/\?/g, () => `$${++i}`);
-    const result = await _originalQuery(pgSql, params);
-    // Mimic mysql2's [rows, fields] return shape
-    return [result.rows, result.fields ?? []];
+    try {
+      const result = await _originalQuery(pgSql, params);
+      // Mimic mysql2's [rows, fields] return shape
+      return [result.rows, result.fields ?? []];
+    } catch (err) {
+      console.error(`[DB] Query failed: ${pgSql}`);
+      console.error(`[DB] Params: ${JSON.stringify(params)}`);
+      console.error(`[DB] Error: ${err.message}`);
+      throw err;
+    }
   };
 
   module.exports = pool;
