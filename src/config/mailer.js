@@ -46,7 +46,15 @@ async function sendMail({ to, subject, text, html }) {
     console.warn('[mailer] MAIL_USER or MAIL_PASS not set — email not sent.');
     return;
   }
-  await transporter.sendMail({ from: FROM, to, subject, text, html });
+
+  try {
+    const info = await transporter.sendMail({ from: FROM, to, subject, text, html });
+    console.log(`[mailer] Email sent to ${to} — MessageId: ${info.messageId}`);
+    return info;
+  } catch (err) {
+    console.error(`[mailer] Send failed to ${to}: ${err.message}`);
+    throw err;
+  }
 }
 
 module.exports = { sendMail };
